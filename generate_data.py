@@ -1,29 +1,25 @@
-import random
+def generate_initial_dataset(csv_path: str, count: int = 1200):
+    """
+    Генерира начален файл с данни, ако такъв не съществува или е твърде малък.
+    """
+    categories = {
+        "sport": ["отборът", "футболен мач", "шампионат", "победа", "треньор", "играч", "стадион"],
+        "politics": ["парламентът", "избори", "закон", "правителство", "дебати", "политици", "министър"],
+        "technology": ["софтуер", "изкуствен интелект", "хардуер", "смартфон", "иновации", "роботи", "данни"]
+    }
 
-categories = {
-    "sport": [
-        "Отборът спечели важен мач",
-        "Състезателят постигна нов рекорд",
-        "Треньорът подготвя отбора за финала"
-    ],
-    "politics": [
-        "Парламентът прие нов закон",
-        "Министърът обяви нови мерки",
-        "Правителството обсъжда бюджета"
-    ],
-    "technology": [
-        "Компанията представи нов софтуер",
-        "Разработчиците създадоха нова система",
-        "Учени разработват изкуствен интелект"
-    ]
-}
+    data = []
+    for _ in range(count):
+        cat = random.choice(list(categories.keys()))
+        # Генерираме малко по-разнообразни изречения за по-добро обучение
+        templates = [
+            f"{random.choice(categories[cat])} беше основната тема на днешния ден.",
+            f"Вчера обсъждаха новия {random.choice(categories[cat])}.",
+            f"Експерти анализират важния {random.choice(categories[cat])} в детайли.",
+            f"Очаква се развитие около текущия {random.choice(categories[cat])}."
+        ]
+        data.append([cat, random.choice(templates)])
 
-with open("news_dataset.csv", "w", encoding="utf-8") as f:
-    f.write("category,text\n")
-
-    for _ in range(1000):
-        category = random.choice(list(categories.keys()))
-        text = random.choice(categories[category])
-        f.write(f'{category},"{text}."\n')
-
-print("Готово! Създадени са 1000 статии.")
+    df = pd.DataFrame(data, columns=["category", "text"])
+    df.to_csv(csv_path, index=False, encoding="utf-8-sig")
+    print(f" Успешно генерирани {count} записа в {csv_path}")
