@@ -1,6 +1,8 @@
 import re
 import queue
 import threading
+import random
+import os
 from io import StringIO
 from concurrent.futures import ThreadPoolExecutor
 
@@ -178,29 +180,47 @@ def pipeline_classification(new_articles: list[str], model, vectorizer, output_f
 def main():
     csv_path = "news_dataset.csv"
 
+    # СТЪПКА 0: Проверка и генериране на данни
+    import os
+    if not os.path.exists(csv_path):
+        print(f"Файлът {csv_path} не е намерен. Генериране на 1200 записа...")
+        generate_initial_dataset(csv_path, 1200)
+    else:
+        print(f"Файлът {csv_path} е намерен. Продължаваме към обучение...")
+
     try:
+        # 1. Обучение на модела с целия набор от данни
         model, vectorizer = train_model(csv_path)
 
-        print("\n=== PIPELINE КЛАСИФИКАЦИЯ НА НОВИ СТАТИИ ===")
-        new_articles = [
-            "Отборът спечели важен мач след драматичен обрат през второто полувреме.",
-            "Парламентът прие нови промени в държавния бюджет след дълги дебати.",
-            "Нова технологична компания представи изкуствен интелект за обработка на текст."
-        ]
+        # 2. ЗАРЕЖДАНЕ НА ДАННИ ЗА КЛАСИФИКАЦИЯ
+        # Тук четем генерирания файл, за да вземем статиите за тестване на pipeline-а
+        df_all = pd.read_csv(csv_path)
+        
+        # Взимаме първите 1000 текста от колоната 'text'
+        # Можеш да промениш .head(1000) на колкото решиш
+        new_articles = df_all["text"].head(1000).tolist()
 
+        print(f"\n=== PIPELINE КЛАСИФИКАЦИЯ НА {len(new_articles)} СТАТИИ ===")
+        
+        # 3. Стартиране на конвейера (Pipeline)
+        # Това ще задейства 4-те нишки паралелно върху тези 1000 записа
         results = pipeline_classification(new_articles, model, vectorizer)
 
-        print("\nРезултати от новите статии:")
-        for text, category in results:
-            print(f"[{category}] {text}")
+        # 4. Извеждане на резултатите
+        print(f"\nОбработката приключи.")
+        print(f"Общо обработени статии: {len(results)}")
+        
+        # Показваме само първите 5 в конзолата, за да не се препълни терминалът
+        print("\nПървите 5 резултата:")
+        for text, category in results[:5]:
+            print(f"[{category}] {text[:60]}...")
 
-        print("\nГотово. Резултатите са записани във файла results.txt")
+        print("\nГотово. Всички 1000 резултата са записани във файла results.txt")
 
     except FileNotFoundError:
-        print("Грешка: Файлът news_dataset.csv не е намерен.")
+        print(f"Грешка: Файлът {csv_path} не е намерен.")
     except Exception as e:
-        print(f"Възникна грешка: {e}")
-
+        print(f"Възникна грешка по време на изпълнение: {e}")
 
 if __name__ == "__main__":
     main()
